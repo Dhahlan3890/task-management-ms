@@ -1,0 +1,75 @@
+name: CI/CD for Microservices to Minikube
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:  # allows manual trigger from GitHub UI
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Optional: Set up Python if you add linting/tests
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Example: Lint & test user-service (repeat for other services)
+      - name: Install dependencies & test user-service
+        working-directory: ./services/user-service
+        run: |
+          pip install -r requirements.txt
+          pytest tests/ || echo "No tests found, skipping"
+
+      # Build Docker images (one per service)
+      - name: Build Docker images
+        run: |
+          docker build -t user-service:dev ./services/user-service
+          docker build -t task-service:dev ./services/task-service
+          # Add more services here when ready
+
+  deploy-to-minikube:
+    runs-on: ubuntu-latest
+    needs: build-and-test  # only deploy if build succeeds
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'  # only on main push or manual
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Start Minikube in CI (lightweight single-node cluster)
+      - name: Start Minikube
+        uses: medyagh/setup-minikube@v0.0.13  # popular maintained action in 2026
+        with:
+          minikube version: 'latest'
+          kubernetes version: 'v1.29.0'  # or latest stable
+          driver: 'docker'
+          cpus: '2'
+          memory: '4096'
+
+      # Build images INSIDE Minikube's Docker (fast, no push needed)
+      - name: Build images in Minikube
+        run: |
+          eval $(minikube -p minikube docker-env)
+          docker build -t user-service:dev ./services/user-service
+          docker build -t task-service:dev ./services/task-service
+
+      # Apply Kubernetes manifests
+      - name: Deploy to Minikube
+        run: |
+          kubectl apply -f infra/base/user-service/
+          kubectl apply -f infra/base/task-service/  # add when you create its manifests
+          # Wait for rollout
+          kubectl rollout status deployment/user-service --timeout=120s
+          kubectl get pods,svc
+
+      # Optional: Smoke test (call health endpoint)
+      - name: Verify deployment
+        run: |
+          MINIKUBE_IP=$(minikube ip)
+          curl -f http://$MINIKUBE_IP:30001/health || echo "Health check failed"

@@ -9,3 +9,5 @@ asyncpg>=0.29.0          # for PostgreSQL async
 aiosqlite>=0.20.0
 httpx>=0.27.0            # for calling other services
 pydantic-settings>=2.0.0
+pytest>=8.0.0
+httpx>=0.27.0

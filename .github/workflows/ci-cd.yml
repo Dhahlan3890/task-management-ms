@@ -24,8 +24,9 @@ jobs:
       - name: Install dependencies & test user-service
         working-directory: ./services/user-service
         run: |
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pytest tests/ || echo "No tests found, skipping"
+          pytest tests/ -v --tb=short  # -v = verbose, --tb=short = cleaner tracebacks
 
       # Build Docker images (one per service)
       - name: Build Docker images

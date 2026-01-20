@@ -8,7 +8,7 @@ app = FastAPI(
 
 @app.get("/")
 async def root():
-    return {"message": "Hello from User Service 🚀"}
+    return {"message": "Hello Dhahlan from User Service 🚀"}
 
 @app.get("/health")
 async def health_check():

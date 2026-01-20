@@ -7,7 +7,7 @@ client = TestClient(app)
 def test_root_endpoint():
     response = client.get("/")
     assert response.status_code == 200
-    assert "Hello from User Service" in response.json().get("message", "")  # safer
+    assert "Hello Dhahlan from User Service" in response.json().get("message", "")  # safer
 
 def test_health_endpoint():
     response = client.get("/health")

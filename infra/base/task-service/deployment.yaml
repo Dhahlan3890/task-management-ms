@@ -1,0 +1,49 @@
+# infra/base/task-service/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: task-service
+  namespace: default          # you can change to a custom ns later
+  labels:
+    app: task-service
+    tier: backend
+spec:
+  replicas: 2                 # start with 2 pods → see scaling in action
+  selector:
+    matchLabels:
+      app: task-service
+  template:
+    metadata:
+      labels:
+        app: task-service
+    spec:
+      containers:
+      - name: task-service
+        image: task-service:dev          # the tag you built with docker build -t
+        imagePullPolicy: Never           # VERY IMPORTANT for local Minikube → use local image
+        ports:
+        - containerPort: 8000
+        env:
+        - name: ENVIRONMENT
+          value: "dev"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        resources:                       # good practice: set limits
+          requests:
+            cpu: "100m"                  # 0.1 CPU
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        readinessProbe:                  # helps K8s know when pod is ready
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 20

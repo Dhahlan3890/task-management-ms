@@ -1,0 +1,17 @@
+# infra/base/user-service/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: default
+  labels:
+    app: user-service
+spec:
+  selector:
+    app: user-service               # must match Deployment's pod labels
+  ports:
+  - protocol: TCP
+    port: 8000                      # port other services use to reach this
+    targetPort: 8000                # container's port
+    nodePort: 30001                 # optional: for direct access from host
+  type: NodePort                    # easiest for Minikube local access

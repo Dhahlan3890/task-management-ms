@@ -1,0 +1,47 @@
+# docker-compose.dev.yml
+# Development setup: hot-reload, local ports, no production optimizations
+
+services:
+
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    container_name: user-svc
+    ports:
+      - "8001:8000"           # host:8001 → container:8000
+    volumes:
+      - ./services/user-service/app:/app/app  # hot-reload: code changes reflected instantly
+    environment:
+      - PYTHONUNBUFFERED=1    # better logs
+      - ENVIRONMENT=dev
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    # ^-- --reload enables auto-restart on code change (only for dev!)
+    restart: unless-stopped
+    networks:
+      - backend
+
+  task-service:
+    build:
+      context: ./services/task-service
+      dockerfile: Dockerfile
+    container_name: task-svc
+    ports:
+      - "8002:8000"           # different host port to avoid conflict
+    volumes:
+      - ./services/task-service/app:/app/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ENVIRONMENT=dev
+      # Later: add URL to call user-service, e.g.
+      # - USER_SERVICE_URL=http://user-service:8000
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+    networks:
+      - backend
+    depends_on:
+      - user-service        # optional: start user first
+
+networks:
+  backend:
+    driver: bridge          # internal network so services can talk via name (user-service:8000)
